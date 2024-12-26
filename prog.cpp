@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <numbers>
+#include <chrono>
 
 constexpr unsigned int row_length = 100; // remember to also change str
 #define ROW_LENGTH_STR "100"
@@ -34,9 +35,14 @@ layout (std430, binding=3) buffer vertex_velocity {
 } velocity;
 
 uniform float delta_time = 0.01;
+uniform float spinning_speed = 0.2;
+uniform float spring_strength = 300;
+uniform float gravity_strength = 0.01;
+uniform float scaling = 0.01;
 
 out vec3 vertex_normal_vec;
 out vec3 triangle_normal_vec;
+out vec2 tex_coord;
 
 void main () {
     uint square_index = gl_VertexID / 6;
@@ -49,6 +55,9 @@ void main () {
 
     uint vertex_x = (square_x + x_offsets[gl_VertexID % 6]) % ROW_LENGTH;
     uint vertex_y = square_y + y_offsets[gl_VertexID % 6];
+
+    tex_coord = vec2(float(square_x + x_offsets[gl_VertexID % 6]) / ROW_LENGTH,
+            float(vertex_y)/COLUMN_LENGTH);
 
     uint vertex_index = vertex_y * ROW_LENGTH + vertex_x;
 
@@ -89,7 +98,7 @@ void main () {
 
     if (square_x == vertex_x && (square_y == vertex_y || vertex_y == COLUMN_LENGTH-1)) { // only one vertex processes a place
         if (vertex_y == 0) {
-            float alpha = delta_time;
+            float alpha = delta_time * spinning_speed;
             float cs = cos(alpha);
             float sn = sin(alpha);
 
@@ -102,10 +111,32 @@ void main () {
 
             pos_next.pos[vertex_index] = rotation_matrix * pos_current.pos[vertex_index];
         } else {
-            velocity.data[vertex_index].y -= 0.01 * delta_time;
+            velocity.data[vertex_index].y -= gravity_strength * delta_time;
 
-            if (vertex_y < COLUMN_LENGTH-1) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                if (vertex_y == COLUMN_LENGTH-1 && delta_y == 1) {
+                    break;
+                }
+                for (int delta_x = -1; delta_x <= 1; delta_x++) {
+                    if (delta_x == 0 && delta_y == 0) {
+                        continue;
+                    }
+                    uint other_x = (vertex_x + ROW_LENGTH + delta_x) % ROW_LENGTH;
+                    uint other_y = vertex_y + delta_y;
+                    uint other_index = other_y * ROW_LENGTH + other_x;
+
+                    float wanted_distance = length (pos_start.pos[vertex_index] - pos_start.pos[other_index]);
+
+                    vec3 position_diff = pos_current.pos[vertex_index].xyz - pos_current.pos[other_index].xyz;
+
+                    float delta_len = wanted_distance - length (position_diff);
+                    
+                    velocity.data[vertex_index] += vec4 (normalize(position_diff) * delta_len * delta_time * spring_strength, 0);
+                }
             }
+
+            velocity.data[vertex_index].y /= 10;
+
 
             pos_next.pos[vertex_index] = pos_current.pos[vertex_index] + velocity.data[vertex_index] * delta_time;
         }
@@ -118,11 +149,13 @@ constexpr static const char fragment_shader_source [] = R"(
 
 out vec4 color;
 in vec3 vertex_normal_vec;
+in vec2 tex_coord;
 
-vec3 light_dir = vec3(1,1,1);
+vec3 light_dir = normalize(vec3(1,0,-1));
 
 void main () {
-    color = vec4 (max(0,dot(vertex_normal_vec,light_dir)), 0, 0, 1);
+    float light_intensity = min(max(dot(vertex_normal_vec,light_dir), 0)*0.5 + 0.4, 1);
+    color = vec4 (light_intensity * tex_coord, 0, 1);
 }
 )";
 
@@ -214,7 +247,15 @@ int main () {
         }
     }
 
+    GLint delta_time_uniform_location = glGetUniformLocation (program, "delta_time");
+
+    auto prev_time_point = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose (window)) {
+        auto cur_time_point = std::chrono::high_resolution_clock::now();
+        float elapsed_seconds = std::chrono::duration<float> {cur_time_point - prev_time_point}.count();
+        prev_time_point = cur_time_point;
+        glUniform1f (delta_time_uniform_location, elapsed_seconds);
+
         int width, height;
         glfwGetWindowSize (window, &width, &height);
         glViewport (0, 0, width, height);

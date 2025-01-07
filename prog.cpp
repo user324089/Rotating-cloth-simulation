@@ -204,13 +204,12 @@ class Painter {
                                       glm::value_ptr(light_transform));
 
 
-            /*
             glGenTextures(1, &shadow_texture);
             glGenFramebuffers(1, &shadow_framebuffer);
 
             glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
             glBindTexture(GL_TEXTURE_2D, shadow_texture);
-            glTexStorage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, shadow_map_size,
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, shadow_map_size,
                            shadow_map_size);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -222,7 +221,7 @@ class Painter {
             glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
             glDrawBuffer(GL_NONE);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            */
+
         }
 
         bool has_finished() {

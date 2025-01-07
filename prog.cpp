@@ -1,3 +1,4 @@
+#include "constants.hpp"
 #include "fragment_shader.hpp"
 #include "vertex_shader.hpp"
 
@@ -9,9 +10,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <numbers>
+#include <sstream>
 #include <stdexcept>
+
 
 GLuint create_shader(GLint type, const char *source, const std::string &shader_name_str) {
     GLuint shader = glCreateShader(type);
@@ -117,10 +119,10 @@ int main() {
     glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
                               glm::value_ptr(view_transform));
 
+    glm::mat4 light_transform = glm::lookAt (light_direction, glm::vec3 (0,0,0), glm::vec3 (0,1,0));
 
     GLint delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
 
-    float time_passed = 0;
     auto prev_time_point = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
         auto cur_time_point = std::chrono::high_resolution_clock::now();
@@ -128,7 +130,6 @@ int main() {
             std::chrono::duration<float>{cur_time_point - prev_time_point}.count();
         prev_time_point = cur_time_point;
         glUniform1f(delta_time_uniform_location, elapsed_seconds);
-        time_passed += elapsed_seconds;
 
 
         int width, height;

@@ -1,11 +1,5 @@
-constexpr unsigned int row_length = 60; // remember to also change str
-#define ROW_LENGTH_STR "60"
-constexpr unsigned int column_length = 40; // remember to also change str
-#define COLUMN_LENGTH_STR "40"
-
-constexpr unsigned int vertex_count = column_length * row_length;
-constexpr float upper_radius = 0.4f;
-constexpr float lower_radius = 0.6f;
+#pragma once
+#include "constants.hpp"
 
 constexpr static const char vertex_shader_source[] = R"(
 #version 460 core

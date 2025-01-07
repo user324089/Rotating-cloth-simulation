@@ -14,3 +14,5 @@ constexpr unsigned int vertex_count = column_length * row_length;
 
 constexpr float upper_radius = 0.4f;
 constexpr float lower_radius = 0.6f;
+
+constexpr unsigned int shadow_map_size = 2000;

@@ -1,6 +1,9 @@
 #include "constants.hpp"
 #include "fragment_shader.hpp"
+#include "fragment_shader_ground.hpp"
 #include "vertex_shader.hpp"
+#include "vertex_shader_ground.hpp"
+#include "vertex_shader_simple.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -10,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 #include <numbers>
 #include <sstream>
 #include <stdexcept>
@@ -52,7 +56,13 @@ class Painter {
         GLFWwindow *window = nullptr;
         GLint delta_time_uniform_location = 0;
         GLuint program = 0;
+        GLuint light_program = 0;
+        GLuint ground_program = 0;
+        GLuint cloth_VAO = 0;
+        GLuint ground_VAO = 0;
         unsigned int current_buffer = 0;
+        GLuint shadow_texture = 0;
+        GLuint shadow_framebuffer = 0;
         GLuint buffers[4];
 
         float vertex_positions[vertex_count][4]; // i dont know why these cant be
@@ -95,6 +105,34 @@ class Painter {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers[0]);
         }
 
+        struct ground_vertex {
+            public:
+                float position[3];
+        };
+
+        void init_ground_VAO() {
+            glGenVertexArrays(1, &ground_VAO);
+            glBindVertexArray(ground_VAO);
+
+            ground_vertex vertices[] = {
+                {-1, -0.5,  1},
+                { 1, -0.5,  1},
+                {-1, -0.5, -1},
+                { 1, -0.5, -1}
+            };
+
+            GLuint ground_vertices_buffer;
+            glGenBuffers(1, &ground_vertices_buffer);
+
+            glBindBuffer(GL_ARRAY_BUFFER, ground_vertices_buffer);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ground_vertex),
+                                  reinterpret_cast<void *>(offsetof(ground_vertex, position)));
+            glEnableVertexAttribArray(0);
+            glBindVertexArray(0);
+        }
+
     public:
         void init() {
             glfwInit();
@@ -108,9 +146,7 @@ class Painter {
             glewExperimental = GL_TRUE;
             glewInit();
 
-            GLuint VAO;
-            glGenVertexArrays(1, &VAO);
-            glBindVertexArray(VAO);
+            glGenVertexArrays(1, &cloth_VAO);
 
             GLuint v_shader =
                 create_shader(GL_VERTEX_SHADER, vertex_shader_source, "vertex shader");
@@ -120,12 +156,28 @@ class Painter {
             glEnable(GL_DEPTH_TEST);
 
             init_buffers();
-
+            init_ground_VAO();
 
             program = glCreateProgram();
             glAttachShader(program, v_shader);
             glAttachShader(program, f_shader);
             link_program(program, "main program");
+
+            GLuint v_shader_simple = create_shader(GL_VERTEX_SHADER, vertex_simple_shader_source,
+                                                   "simple vertex shader");
+
+            light_program = glCreateProgram();
+            glAttachShader(light_program, v_shader_simple);
+            link_program(light_program, "simple program");
+
+            GLuint v_shader_ground = create_shader(GL_VERTEX_SHADER, vertex_ground_shader_source,
+                                                   "ground vertex shader");
+            GLuint f_shader_ground = create_shader(
+                GL_FRAGMENT_SHADER, fragment_ground_shader_source, "ground fragment shader");
+            ground_program = glCreateProgram();
+            glAttachShader(ground_program, v_shader_ground);
+            glAttachShader(ground_program, f_shader_ground);
+            link_program(ground_program, "ground program");
 
             glm::mat4 view_transform(1.0f);
             view_transform = glm::translate(view_transform, glm::vec3(0, 0, -3));
@@ -137,7 +189,40 @@ class Painter {
             glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
                                       glm::value_ptr(view_transform));
 
+            GLuint view_transform_ground_uniform_location =
+                glGetUniformLocation(ground_program, "view_transform");
+            glProgramUniformMatrix4fv(ground_program, view_transform_ground_uniform_location, 1,
+                                      GL_FALSE, glm::value_ptr(view_transform));
+
             delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
+
+            glm::mat4 light_transform =
+                glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+            GLuint light_transform_uniform_location =
+                glGetUniformLocation(light_program, "light_transform");
+            glProgramUniformMatrix4fv(light_program, light_transform_uniform_location, 1, GL_FALSE,
+                                      glm::value_ptr(light_transform));
+
+
+            /*
+            glGenTextures(1, &shadow_texture);
+            glGenFramebuffers(1, &shadow_framebuffer);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
+            glBindTexture(GL_TEXTURE_2D, shadow_texture);
+            glTexStorage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, shadow_map_size,
+                           shadow_map_size);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
+            glDrawBuffer(GL_NONE);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            */
         }
 
         bool has_finished() {
@@ -145,7 +230,7 @@ class Painter {
         }
 
         void display(float delta_time) {
-            glUniform1f(delta_time_uniform_location, delta_time);
+            glProgramUniform1f(program, delta_time_uniform_location, delta_time);
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);
@@ -155,6 +240,7 @@ class Painter {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
+            glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
             current_buffer ^= 1;
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, buffers[1 + current_buffer]);
@@ -162,7 +248,10 @@ class Painter {
 
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
-            glFinish();
+            glUseProgram(ground_program);
+            glBindVertexArray(ground_VAO);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
             glfwSwapBuffers(window);
         }
 

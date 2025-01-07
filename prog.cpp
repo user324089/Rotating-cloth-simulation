@@ -6,11 +6,15 @@
 #include <cmath>
 #include <numbers>
 #include <chrono>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-constexpr unsigned int row_length = 100; // remember to also change str
-#define ROW_LENGTH_STR "100"
-constexpr unsigned int column_length = 100; // remember to also change str
-#define COLUMN_LENGTH_STR "100"
+
+constexpr unsigned int row_length = 60; // remember to also change str
+#define ROW_LENGTH_STR "60"
+constexpr unsigned int column_length = 40; // remember to also change str
+#define COLUMN_LENGTH_STR "40"
 
 constexpr unsigned int vertex_count = column_length * row_length;
 constexpr float upper_radius = 0.4f;
@@ -35,10 +39,12 @@ layout (std430, binding=3) buffer vertex_velocity {
 } velocity;
 
 uniform float delta_time = 0.01;
-uniform float spinning_speed = 0.2;
+uniform float spinning_speed = 0.5;
 uniform float spring_strength = 300;
 uniform float gravity_strength = 0.01;
 uniform float scaling = 0.01;
+
+uniform mat4 view_transform;
 
 out vec3 vertex_normal_vec;
 out vec3 triangle_normal_vec;
@@ -94,7 +100,7 @@ void main () {
 
     vertex_normal_vec = normal_vec / adjacent_triangles;
 
-    gl_Position = vec4(pos_current.pos[vertex_index].xyz, 1);
+    gl_Position = view_transform * vec4(pos_current.pos[vertex_index].xyz, 1);
 
     if (square_x == vertex_x && (square_y == vertex_y || vertex_y == COLUMN_LENGTH-1)) { // only one vertex processes a place
         if (vertex_y == 0) {
@@ -151,7 +157,7 @@ out vec4 color;
 in vec3 vertex_normal_vec;
 in vec2 tex_coord;
 
-vec3 light_dir = normalize(vec3(1,0,-1));
+vec3 light_dir = normalize(vec3(1,0,1));
 
 void main () {
     float light_intensity = min(max(dot(vertex_normal_vec,light_dir), 0)*0.5 + 0.4, 1);
@@ -247,14 +253,25 @@ int main () {
         }
     }
 
+    glm::mat4 view_transform (1.0f);
+    view_transform = glm::translate (view_transform, glm::vec3 (0,0,-3));
+    view_transform = glm::rotate (view_transform, 0.4f, glm::vec3 (1,0,0));
+    view_transform = glm::perspective (45.0f, 800.0f/600.0f, 0.1f, 100.0f) * view_transform;
+    GLuint view_transform_uniform_location = glGetUniformLocation (program, "view_transform");
+    glProgramUniformMatrix4fv (program, view_transform_uniform_location, 1, GL_FALSE, glm::value_ptr(view_transform));
+
+
     GLint delta_time_uniform_location = glGetUniformLocation (program, "delta_time");
 
+    float time_passed = 0;
     auto prev_time_point = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose (window)) {
         auto cur_time_point = std::chrono::high_resolution_clock::now();
         float elapsed_seconds = std::chrono::duration<float> {cur_time_point - prev_time_point}.count();
         prev_time_point = cur_time_point;
         glUniform1f (delta_time_uniform_location, elapsed_seconds);
+        time_passed += elapsed_seconds;
+
 
         int width, height;
         glfwGetWindowSize (window, &width, &height);

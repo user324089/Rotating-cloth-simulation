@@ -55,37 +55,12 @@ class Painter {
         unsigned int current_buffer = 0;
         GLuint buffers[4];
 
-        void init_buffers() {}
+        float vertex_positions[vertex_count][4]; // i dont know why these cant be
+                                                 // local variables, but then it doesn't work
+        float zeros[vertex_count][4];
 
-    public:
-        void init() {
-            glfwInit();
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-            window = glfwCreateWindow(100, 100, "title", nullptr, nullptr);
-            glfwMakeContextCurrent(window);
-
-            glewExperimental = GL_TRUE;
-            glewInit();
-
-            GLuint VAO;
-            glGenVertexArrays(1, &VAO);
-            glBindVertexArray(VAO);
-
-            GLuint v_shader =
-                create_shader(GL_VERTEX_SHADER, vertex_shader_source, "vertex shader");
-            GLuint f_shader =
-                create_shader(GL_FRAGMENT_SHADER, fragment_shader_source, "fragment shader");
-
-            glEnable(GL_DEPTH_TEST);
-
-            init_buffers();
+        void init_buffers() {
             glGenBuffers(4, buffers);
-
-            float vertex_positions[vertex_count][4];
-            float zeros[vertex_count][4];
             std::memset(zeros, 0, sizeof(zeros));
 
             for (unsigned int y = 0; y < column_length; y++) {
@@ -113,11 +88,39 @@ class Painter {
             glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), nullptr,
                          GL_STATIC_DRAW);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[3]);
-            glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), zeros, GL_STATIC_DRAW);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(zeros), zeros, GL_STATIC_DRAW);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
             current_buffer = 0;
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers[0]);
+        }
+
+    public:
+        void init() {
+            glfwInit();
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+            glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+            window = glfwCreateWindow(100, 100, "title", nullptr, nullptr);
+            glfwMakeContextCurrent(window);
+
+            glewExperimental = GL_TRUE;
+            glewInit();
+
+            GLuint VAO;
+            glGenVertexArrays(1, &VAO);
+            glBindVertexArray(VAO);
+
+            GLuint v_shader =
+                create_shader(GL_VERTEX_SHADER, vertex_shader_source, "vertex shader");
+            GLuint f_shader =
+                create_shader(GL_FRAGMENT_SHADER, fragment_shader_source, "fragment shader");
+
+            glEnable(GL_DEPTH_TEST);
+
+            init_buffers();
+
 
             program = glCreateProgram();
             glAttachShader(program, v_shader);

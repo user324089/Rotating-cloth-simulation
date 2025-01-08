@@ -2,8 +2,7 @@
 #include <glm/glm.hpp>
 
 #define LIGHT_DIR_STR "vec3(1,0,1)"
-
-constexpr glm::vec3 light_direction(1, 0, 1);
+constexpr glm::vec3 light_direction(0,3,0);
 
 constexpr unsigned int row_length = 60; // remember to also change str
 #define ROW_LENGTH_STR "60"

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -115,10 +116,10 @@ class Painter {
             glBindVertexArray(ground_VAO);
 
             ground_vertex vertices[] = {
-                {-1, -0.5,  1},
-                { 1, -0.5,  1},
-                {-1, -0.5, -1},
-                { 1, -0.5, -1}
+                {-2, -1,  2},
+                { 2, -1,  2},
+                {-2, -1, -2},
+                { 2, -1, -2}
             };
 
             GLuint ground_vertices_buffer;
@@ -197,10 +198,16 @@ class Painter {
             delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
 
             glm::mat4 light_transform =
-                glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+                //glm::perspective(45.0f, 1.0f, 0.1f, 10.0f) * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+                glm::ortho (-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f) * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
             GLuint light_transform_uniform_location =
                 glGetUniformLocation(light_program, "light_transform");
             glProgramUniformMatrix4fv(light_program, light_transform_uniform_location, 1, GL_FALSE,
+                                      glm::value_ptr(light_transform));
+
+            GLuint light_ground_transform_uniform_location =
+                glGetUniformLocation(ground_program, "light_transform");
+            glProgramUniformMatrix4fv(ground_program, light_ground_transform_uniform_location, 1, GL_FALSE,
                                       glm::value_ptr(light_transform));
 
 
@@ -222,6 +229,7 @@ class Painter {
             glDrawBuffer(GL_NONE);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+            assert (glCheckFramebufferStatus ( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE);
         }
 
         bool has_finished() {
@@ -230,6 +238,18 @@ class Painter {
 
         void display(float delta_time) {
             glProgramUniform1f(program, delta_time_uniform_location, delta_time);
+
+            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
+            glViewport (0, 0, shadow_map_size, shadow_map_size);
+
+            glClear (GL_DEPTH_BUFFER_BIT);
+
+            glUseProgram(light_program);
+            glBindVertexArray(cloth_VAO);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
+            glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
+
+            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);
@@ -247,11 +267,13 @@ class Painter {
 
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
+            glBindTexture (GL_TEXTURE_2D, shadow_texture);
             glUseProgram(ground_program);
             glBindVertexArray(ground_VAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             glfwSwapBuffers(window);
+            std::cout << std::hex << glGetError() << "\n";
         }
 
         void destroy() {

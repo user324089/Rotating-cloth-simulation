@@ -63,6 +63,7 @@ class Painter {
         GLuint ground_VAO = 0;
         unsigned int current_buffer = 0;
         GLuint shadow_texture = 0;
+        GLuint shadow_color_texture = 0;
         GLuint shadow_framebuffer = 0;
         GLuint buffers[4];
 
@@ -212,9 +213,11 @@ class Painter {
 
 
             glGenTextures(1, &shadow_texture);
+            glGenTextures (1, &shadow_color_texture);
             glGenFramebuffers(1, &shadow_framebuffer);
 
             glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
+
             glBindTexture(GL_TEXTURE_2D, shadow_texture);
             glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, shadow_map_size,
                            shadow_map_size);
@@ -224,9 +227,19 @@ class Painter {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-            glBindTexture(GL_TEXTURE_2D, 0);
+
             glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
-            glDrawBuffer(GL_NONE);
+
+            glBindTexture (GL_TEXTURE_2D, shadow_color_texture);
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, shadow_map_size,
+                           shadow_map_size);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, shadow_color_texture, 0);
+
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
             assert (glCheckFramebufferStatus ( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE);
@@ -267,6 +280,7 @@ class Painter {
 
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
+            glActiveTexture (GL_TEXTURE0);
             glBindTexture (GL_TEXTURE_2D, shadow_texture);
             glUseProgram(ground_program);
             glBindVertexArray(ground_VAO);

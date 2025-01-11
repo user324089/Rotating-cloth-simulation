@@ -170,6 +170,7 @@ class Painter {
 
             light_program = glCreateProgram();
             glAttachShader(light_program, v_shader_simple);
+            glAttachShader(light_program, f_shader);
             link_program(light_program, "simple program");
 
             GLuint v_shader_ground = create_shader(GL_VERTEX_SHADER, vertex_ground_shader_source,
@@ -199,8 +200,10 @@ class Painter {
             delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
 
             glm::mat4 light_transform =
-                //glm::perspective(45.0f, 1.0f, 0.1f, 10.0f) * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
-                glm::ortho (-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f) * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+                // glm::perspective(45.0f, 1.0f, 0.1f, 10.0f) * glm::lookAt(light_direction,
+                // glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+                glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f)
+                * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
             GLuint light_transform_uniform_location =
                 glGetUniformLocation(light_program, "light_transform");
             glProgramUniformMatrix4fv(light_program, light_transform_uniform_location, 1, GL_FALSE,
@@ -208,12 +211,12 @@ class Painter {
 
             GLuint light_ground_transform_uniform_location =
                 glGetUniformLocation(ground_program, "light_transform");
-            glProgramUniformMatrix4fv(ground_program, light_ground_transform_uniform_location, 1, GL_FALSE,
-                                      glm::value_ptr(light_transform));
+            glProgramUniformMatrix4fv(ground_program, light_ground_transform_uniform_location, 1,
+                                      GL_FALSE, glm::value_ptr(light_transform));
 
 
             glGenTextures(1, &shadow_texture);
-            glGenTextures (1, &shadow_color_texture);
+            glGenTextures(1, &shadow_color_texture);
             glGenFramebuffers(1, &shadow_framebuffer);
 
             glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
@@ -230,9 +233,8 @@ class Painter {
 
             glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
 
-            glBindTexture (GL_TEXTURE_2D, shadow_color_texture);
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, shadow_map_size,
-                           shadow_map_size);
+            glBindTexture(GL_TEXTURE_2D, shadow_color_texture);
+            glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, shadow_map_size, shadow_map_size);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -242,7 +244,7 @@ class Painter {
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-            assert (glCheckFramebufferStatus ( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE);
+            assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
         }
 
         bool has_finished() {
@@ -252,17 +254,17 @@ class Painter {
         void display(float delta_time) {
             glProgramUniform1f(program, delta_time_uniform_location, delta_time);
 
-            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
-            glViewport (0, 0, shadow_map_size, shadow_map_size);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
+            glViewport(0, 0, shadow_map_size, shadow_map_size);
 
-            glClear (GL_DEPTH_BUFFER_BIT);
+            glClear(GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(light_program);
             glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
-            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);
@@ -280,8 +282,10 @@ class Painter {
 
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
-            glActiveTexture (GL_TEXTURE0);
-            glBindTexture (GL_TEXTURE_2D, shadow_texture);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, shadow_texture);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, shadow_color_texture);
             glUseProgram(ground_program);
             glBindVertexArray(ground_VAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

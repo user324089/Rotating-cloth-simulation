@@ -25,9 +25,10 @@ uniform float spring_strength = 300;
 uniform float gravity_strength = 0.01;
 uniform float scaling = 0.01;
 
-uniform bool is_updating = true;
-
-uniform mat4 view_transform;
+layout (std140, binding=0) uniform display_options {
+    mat4 view_transform;
+    bool is_updating;
+};
 
 out vec3 vertex_normal_vec;
 out vec3 triangle_normal_vec;

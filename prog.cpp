@@ -13,7 +13,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <numbers>
 #include <sstream>
 #include <stdexcept>
@@ -65,8 +64,8 @@ class Painter {
         GLuint shadow_framebuffer = 0;
         GLuint buffers[4];
 
-        glm::mat4 view_transform;
-        glm::mat4 light_transform;
+        GLuint light_display_options_buffer = 0;
+        GLuint view_display_options_buffer = 0;
 
         float vertex_positions[vertex_count][4]; // i dont know why these cant be
                                                  // local variables, but then it doesn't work
@@ -175,7 +174,7 @@ class Painter {
             glAttachShader(ground_program, f_shader_ground);
             link_program(ground_program, "ground program");
 
-            view_transform = glm::mat4 (1.0f);
+            glm::mat4 view_transform = glm::mat4(1.0f);
             view_transform = glm::translate(view_transform, glm::vec3(0, 0, -3));
             view_transform = glm::rotate(view_transform, 0.4f, glm::vec3(1, 0, 0));
             view_transform =
@@ -192,7 +191,7 @@ class Painter {
 
             delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
 
-            light_transform =
+            glm::mat4 light_transform =
                 glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f)
                 * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
 
@@ -201,6 +200,27 @@ class Painter {
             glProgramUniformMatrix4fv(ground_program, light_ground_transform_uniform_location, 1,
                                       GL_FALSE, glm::value_ptr(light_transform));
 
+            glGenBuffers(1, &view_display_options_buffer);
+            glGenBuffers(1, &light_display_options_buffer);
+
+            glBindBuffer(GL_UNIFORM_BUFFER, light_display_options_buffer);
+            glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
+                         GL_STATIC_DRAW);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat),
+                            glm::value_ptr(light_transform));
+            GLuint dont_update = false;
+            glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint),
+                            &dont_update);
+
+            glBindBuffer(GL_UNIFORM_BUFFER, view_display_options_buffer);
+            glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
+                         GL_STATIC_DRAW);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat),
+                            glm::value_ptr(view_transform));
+            GLuint do_update = true;
+            glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint), &do_update);
+
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
             glGenTextures(1, &shadow_texture);
             glGenTextures(1, &shadow_color_texture);
@@ -244,20 +264,15 @@ class Painter {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
             glViewport(0, 0, shadow_map_size, shadow_map_size);
 
-            glClearColor (0,0,0,0);
+            glClearColor(0, 0, 0, 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glEnable (GL_BLEND);
-            glDisable (GL_DEPTH_TEST);
-            glBlendFunc (GL_SRC_ALPHA, GL_ONE);
-            //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+            glDisable(GL_DEPTH_TEST);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
             glUseProgram(program);
-            glUniform1i (glGetUniformLocation (program, "is_updating"), 0);
-            GLuint view_transform_uniform_location =
-                glGetUniformLocation(program, "view_transform");
-            glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
-                                      glm::value_ptr(light_transform));
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_display_options_buffer);
 
             glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
@@ -265,8 +280,8 @@ class Painter {
 
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-            glEnable (GL_DEPTH_TEST);
-            glDisable (GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDisable(GL_BLEND);
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);
@@ -276,9 +291,8 @@ class Painter {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
-            glUniform1i (glGetUniformLocation (program, "is_updating"), 1);
-            glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
-                                      glm::value_ptr(view_transform));
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, view_display_options_buffer);
+
             glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
             current_buffer ^= 1;
@@ -296,7 +310,6 @@ class Painter {
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
             glfwSwapBuffers(window);
-            std::cout << std::hex << glGetError() << "\n";
         }
 
         void destroy() {

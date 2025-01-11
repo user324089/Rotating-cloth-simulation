@@ -25,6 +25,8 @@ uniform float spring_strength = 300;
 uniform float gravity_strength = 0.01;
 uniform float scaling = 0.01;
 
+uniform bool is_updating = true;
+
 uniform mat4 view_transform;
 
 out vec3 vertex_normal_vec;
@@ -82,6 +84,10 @@ void main () {
     vertex_normal_vec = normal_vec / adjacent_triangles;
 
     gl_Position = view_transform * vec4(pos_current.pos[vertex_index].xyz, 1);
+
+    if (!is_updating) {
+        return;
+    }
 
     if (square_x == vertex_x && (square_y == vertex_y || vertex_y == COLUMN_LENGTH-1)) { // only one vertex processes a place
         if (vertex_y == 0) {

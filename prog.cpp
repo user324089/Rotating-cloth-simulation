@@ -3,7 +3,6 @@
 #include "fragment_shader_ground.hpp"
 #include "vertex_shader.hpp"
 #include "vertex_shader_ground.hpp"
-#include "vertex_shader_simple.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -57,7 +56,6 @@ class Painter {
         GLFWwindow *window = nullptr;
         GLint delta_time_uniform_location = 0;
         GLuint program = 0;
-        GLuint light_program = 0;
         GLuint ground_program = 0;
         GLuint cloth_VAO = 0;
         GLuint ground_VAO = 0;
@@ -66,6 +64,9 @@ class Painter {
         GLuint shadow_color_texture = 0;
         GLuint shadow_framebuffer = 0;
         GLuint buffers[4];
+
+        glm::mat4 view_transform;
+        glm::mat4 light_transform;
 
         float vertex_positions[vertex_count][4]; // i dont know why these cant be
                                                  // local variables, but then it doesn't work
@@ -165,14 +166,6 @@ class Painter {
             glAttachShader(program, f_shader);
             link_program(program, "main program");
 
-            GLuint v_shader_simple = create_shader(GL_VERTEX_SHADER, vertex_simple_shader_source,
-                                                   "simple vertex shader");
-
-            light_program = glCreateProgram();
-            glAttachShader(light_program, v_shader_simple);
-            glAttachShader(light_program, f_shader);
-            link_program(light_program, "simple program");
-
             GLuint v_shader_ground = create_shader(GL_VERTEX_SHADER, vertex_ground_shader_source,
                                                    "ground vertex shader");
             GLuint f_shader_ground = create_shader(
@@ -182,7 +175,7 @@ class Painter {
             glAttachShader(ground_program, f_shader_ground);
             link_program(ground_program, "ground program");
 
-            glm::mat4 view_transform(1.0f);
+            view_transform = glm::mat4 (1.0f);
             view_transform = glm::translate(view_transform, glm::vec3(0, 0, -3));
             view_transform = glm::rotate(view_transform, 0.4f, glm::vec3(1, 0, 0));
             view_transform =
@@ -199,15 +192,9 @@ class Painter {
 
             delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
 
-            glm::mat4 light_transform =
-                // glm::perspective(45.0f, 1.0f, 0.1f, 10.0f) * glm::lookAt(light_direction,
-                // glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+            light_transform =
                 glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f)
                 * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
-            GLuint light_transform_uniform_location =
-                glGetUniformLocation(light_program, "light_transform");
-            glProgramUniformMatrix4fv(light_program, light_transform_uniform_location, 1, GL_FALSE,
-                                      glm::value_ptr(light_transform));
 
             GLuint light_ground_transform_uniform_location =
                 glGetUniformLocation(ground_program, "light_transform");
@@ -265,7 +252,13 @@ class Painter {
             glBlendFunc (GL_SRC_ALPHA, GL_ONE);
             //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-            glUseProgram(light_program);
+            glUseProgram(program);
+            glUniform1i (glGetUniformLocation (program, "is_updating"), 0);
+            GLuint view_transform_uniform_location =
+                glGetUniformLocation(program, "view_transform");
+            glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
+                                      glm::value_ptr(light_transform));
+
             glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
@@ -283,6 +276,9 @@ class Painter {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
+            glUniform1i (glGetUniformLocation (program, "is_updating"), 1);
+            glProgramUniformMatrix4fv(program, view_transform_uniform_location, 1, GL_FALSE,
+                                      glm::value_ptr(view_transform));
             glBindVertexArray(cloth_VAO);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
             current_buffer ^= 1;

@@ -9,10 +9,17 @@ layout (binding=1) uniform sampler2D shadow_color_sampler;
 out vec4 color;
 in vec3 light_coords;
 
+uniform uint type = 0;
+
 void main () {
 
-    //float tex = texture (shadow_sampler, light_coords);
-    //color = vec4 (vec3(0.3,0.3,0.3) * tex + vec3 (0.3,0.3,0.3), 1);
-    color = texture (shadow_color_sampler, light_coords.xy);
+    switch (type) {
+        case 0:
+            color = texture (shadow_color_sampler, light_coords.xy);
+            break;
+        case 1:
+            float tex = texture (shadow_sampler, light_coords);
+            color = vec4 (vec3(0.3,0.3,0.3) * tex + vec3 (0.3,0.3,0.3), 1);
+    }
 }
 )";

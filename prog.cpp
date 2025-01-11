@@ -17,6 +17,8 @@
 #include <sstream>
 #include <stdexcept>
 
+enum {display_type_color, display_type_shadow};
+
 GLuint create_shader(GLint type, const char *source, const std::string &shader_name_str) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
@@ -258,7 +260,7 @@ class Painter {
             return glfwWindowShouldClose(window);
         }
 
-        void display(float delta_time) {
+        void display(float delta_time, unsigned int type) {
             glProgramUniform1f(program, delta_time_uniform_location, delta_time);
 
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
@@ -268,7 +270,9 @@ class Painter {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glEnable(GL_BLEND);
-            glDisable(GL_DEPTH_TEST);
+            if (type == display_type_color) {
+                glDisable(GL_DEPTH_TEST);
+            }
             glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
             glUseProgram(program);
@@ -306,6 +310,7 @@ class Painter {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, shadow_color_texture);
             glUseProgram(ground_program);
+            glUniform1ui (glGetUniformLocation (ground_program, "type"), type);
             glBindVertexArray(ground_VAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -328,7 +333,7 @@ int main() {
         float elapsed_seconds =
             std::chrono::duration<float>{cur_time_point - prev_time_point}.count();
         prev_time_point = cur_time_point;
-        pnt.display(elapsed_seconds);
+        pnt.display(elapsed_seconds, display_type_shadow);
 
         glfwPollEvents();
     }

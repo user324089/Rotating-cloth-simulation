@@ -10,7 +10,7 @@ in vec2 tex_coord;
 
 vec3 light_dir = normalize()" LIGHT_DIR_STR R"();
 
-uniform float alpha = 0.4;
+uniform float alpha = 0.6;
 
 void main () {
     float light_intensity = min(max(dot(vertex_normal_vec,light_dir), 0)*0.5 + 0.4, 1);

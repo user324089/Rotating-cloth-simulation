@@ -262,7 +262,7 @@ class Painter {
 
             glEnable (GL_BLEND);
             glDisable (GL_DEPTH_TEST);
-            glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glBlendFunc (GL_SRC_ALPHA, GL_ONE);
             //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
             glUseProgram(light_program);

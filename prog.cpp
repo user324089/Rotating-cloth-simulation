@@ -257,7 +257,13 @@ class Painter {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, shadow_framebuffer);
             glViewport(0, 0, shadow_map_size, shadow_map_size);
 
-            glClear(GL_DEPTH_BUFFER_BIT);
+            glClearColor (0,0,0,0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glEnable (GL_BLEND);
+            glDisable (GL_DEPTH_TEST);
+            glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            //glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
             glUseProgram(light_program);
             glBindVertexArray(cloth_VAO);
@@ -265,6 +271,9 @@ class Painter {
             glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+            glEnable (GL_DEPTH_TEST);
+            glDisable (GL_BLEND);
 
             int width, height;
             glfwGetWindowSize(window, &width, &height);

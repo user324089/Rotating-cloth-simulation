@@ -179,9 +179,11 @@ void Painter::init_view_transform_uniforms() {
         glBindBuffer(GL_UNIFORM_BUFFER, view_display_options_buffer);
         glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
                      GL_STATIC_DRAW);
+
         glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat),
                         glm::value_ptr(view_transform));
 
+        // enable updating while drawing to screen
         GLuint do_update = true;
         glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint), &do_update);
     }
@@ -202,7 +204,9 @@ void Painter::init_light_transform_uniforms() {
     glBindBuffer(GL_UNIFORM_BUFFER, light_display_options_buffer);
     glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
                  GL_STATIC_DRAW);
+    // set the transform
     glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat), glm::value_ptr(light_transform));
+    // disable the simulation while drawing light
     GLuint dont_update = false;
     glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint), &dont_update);
 

@@ -28,7 +28,9 @@ class Painter {
 
         GLuint buffers[buffer_indices::num];
 
+        // uniform buffer that sets the transform to light and disables movement simulation
         GLuint light_display_options_buffer = 0;
+        // uniform buffer that sets the transform to view and makes shader simulate movement
         GLuint view_display_options_buffer = 0;
 
         void init_buffers();

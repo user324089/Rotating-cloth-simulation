@@ -46,6 +46,18 @@ class Painter {
 
         void init_ground_VAO();
 
+        void draw_shadows(float delta_time, unsigned int type);
+        void draw_to_screen(unsigned int type);
+
+        void init_opengl_window();
+
+        void init_shader_programs();
+
+        void init_view_transform_uniforms();
+        void init_light_transform_uniforms();
+
+        void init_shadow_textures_and_framebuffer();
+
     public:
 
         GLFWwindow *get_window() {

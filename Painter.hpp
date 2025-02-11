@@ -1,8 +1,4 @@
 #include "constants.hpp"
-#include "fragment_shader.hpp"
-#include "fragment_shader_ground.hpp"
-#include "vertex_shader.hpp"
-#include "vertex_shader_ground.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -12,9 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <numbers>
-#include <sstream>
-#include <stdexcept>
 
 enum { display_type_color, display_type_shadow, num_display_types };
 

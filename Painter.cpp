@@ -1,5 +1,14 @@
 #include "Painter.hpp"
 
+#include "fragment_shader.hpp"
+#include "fragment_shader_ground.hpp"
+#include "vertex_shader.hpp"
+#include "vertex_shader_ground.hpp"
+
+#include <numbers>
+#include <sstream>
+#include <stdexcept>
+
 namespace {
 GLuint create_shader(GLint type, const char *source, const std::string &shader_name_str) {
     GLuint shader = glCreateShader(type);

@@ -1,4 +1,5 @@
 #include "Painter.hpp"
+#include "constants.hpp"
 
 #include "fragment_shader.hpp"
 #include "fragment_shader_ground.hpp"
@@ -192,7 +193,7 @@ void Painter::init_view_transform_uniforms() {
 void Painter::init_light_transform_uniforms() {
     glm::mat4 light_transform =
         glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 5.0f)
-        * glm::lookAt(light_direction, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+        * glm::lookAt(light_dir, glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
 
     GLuint light_ground_transform_uniform_location =
         glGetUniformLocation(ground_program, "light_transform");
@@ -257,6 +258,9 @@ void Painter::init() {
     init_light_transform_uniforms();
 
     delta_time_uniform_location = glGetUniformLocation(program, "delta_time");
+    light_dir_uniform_location = glGetUniformLocation (program, "light_dir");
+
+    glProgramUniform3fv (program, light_dir_uniform_location, 1, glm::value_ptr(light_dir));
 
     init_shadow_textures_and_framebuffer();
 }

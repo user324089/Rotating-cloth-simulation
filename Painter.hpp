@@ -1,5 +1,3 @@
-#include "constants.hpp"
-
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
@@ -15,6 +13,7 @@ class Painter {
     private:
         GLFWwindow *window = nullptr;
         GLint delta_time_uniform_location = 0;
+        GLint light_dir_uniform_location = 0;
         GLuint program = 0;
         GLuint ground_program = 0;
         GLuint cloth_VAO = 0;

@@ -48,6 +48,8 @@ void Painter::init_buffers() {
 
     float vertex_positions[vertex_count][4];
 
+    float zeros[vertex_count][4];
+
     glGenBuffers(4, buffers);
     std::memset(zeros, 0, sizeof(zeros));
 

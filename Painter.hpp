@@ -28,8 +28,6 @@ class Painter {
         GLuint light_display_options_buffer = 0;
         GLuint view_display_options_buffer = 0;
 
-        float zeros[vertex_count][4];
-
         void init_buffers();
 
         struct ground_vertex {

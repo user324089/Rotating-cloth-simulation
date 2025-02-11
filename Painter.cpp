@@ -36,9 +36,13 @@ void link_program(GLuint program, const std::string &program_name_str) {
 } // namespace
 
 void Painter::init_buffers() {
+
+    float vertex_positions[vertex_count][4];
+
     glGenBuffers(4, buffers);
     std::memset(zeros, 0, sizeof(zeros));
 
+    // init vertex data
     for (unsigned int y = 0; y < column_length; y++) {
         for (unsigned int x = 0; x < row_length; x++) {
             float y_fraction = static_cast<float>(y) / column_length;
@@ -50,6 +54,7 @@ void Painter::init_buffers() {
             vertex_positions[y * row_length + x][2] =
                 -std::sin(std::numbers::pi_v<float> * 2 * static_cast<float>(x) / row_length)
                 * radius;
+            vertex_positions[y * row_length + x][3] = 1;
         }
     }
 

@@ -35,8 +35,6 @@ class Painter {
         GLuint light_display_options_buffer = 0;
         GLuint view_display_options_buffer = 0;
 
-        float vertex_positions[vertex_count][4]; // i dont know why these cant be
-                                                 // local variables, but then it doesn't work
         float zeros[vertex_count][4];
 
         void init_buffers();

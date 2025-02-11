@@ -69,6 +69,7 @@ void Painter::init_buffers() {
         }
     }
 
+    // populate shader storage buffers with positions and velocities
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[buffer_indices::start_positions]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), vertex_positions,
                  GL_STATIC_DRAW);
@@ -121,15 +122,7 @@ void Painter::init_opengl_window() {
     glewInit();
 }
 
-void Painter::init_shader_programs() {
-    GLuint v_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source, "vertex shader");
-    GLuint f_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source, "fragment shader");
-    program = glCreateProgram();
-    glAttachShader(program, v_shader);
-    glAttachShader(program, f_shader);
-    link_program(program, "main program");
-    glDeleteShader(v_shader);
-    glDeleteShader(f_shader);
+void Painter::init_ground_shader_program() {
 
     GLuint v_shader_ground =
         create_shader(GL_VERTEX_SHADER, vertex_ground_shader_source, "ground vertex shader");
@@ -143,26 +136,55 @@ void Painter::init_shader_programs() {
     glDeleteShader(f_shader_ground);
 }
 
-void Painter::init_view_transform_uniforms() {
+void Painter::init_cloth_shader_program() {
+    GLuint v_shader = create_shader(GL_VERTEX_SHADER, vertex_shader_source, "vertex shader");
+    GLuint f_shader = create_shader(GL_FRAGMENT_SHADER, fragment_shader_source, "fragment shader");
+    program = glCreateProgram();
+    glAttachShader(program, v_shader);
+    glAttachShader(program, f_shader);
+    link_program(program, "main program");
+    glDeleteShader(v_shader);
+    glDeleteShader(f_shader);
+}
 
+void Painter::init_shader_programs() {
+    init_ground_shader_program();
+    init_cloth_shader_program();
+}
+
+glm::mat4 Painter::construct_view_matrix() {
     glm::mat4 view_transform = glm::mat4(1.0f);
     view_transform = glm::translate(view_transform, glm::vec3(0, 0, -3));
     view_transform = glm::rotate(view_transform, 0.4f, glm::vec3(1, 0, 0));
     view_transform = glm::perspective(45.0f, 800.0f / 600.0f, 0.1f, 100.0f) * view_transform;
+    return view_transform;
+}
 
-    GLuint view_transform_ground_uniform_location =
-        glGetUniformLocation(ground_program, "view_transform");
-    glProgramUniformMatrix4fv(ground_program, view_transform_ground_uniform_location, 1, GL_FALSE,
-                              glm::value_ptr(view_transform));
+void Painter::init_view_transform_uniforms() {
 
-    glGenBuffers(1, &view_display_options_buffer);
+    glm::mat4 view_transform = construct_view_matrix();
 
-    glBindBuffer(GL_UNIFORM_BUFFER, view_display_options_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
-                 GL_STATIC_DRAW);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat), glm::value_ptr(view_transform));
-    GLuint do_update = true;
-    glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint), &do_update);
+    {
+        // set view transform in ground program
+        GLuint view_transform_ground_uniform_location =
+            glGetUniformLocation(ground_program, "view_transform");
+        glProgramUniformMatrix4fv(ground_program, view_transform_ground_uniform_location, 1,
+                                  GL_FALSE, glm::value_ptr(view_transform));
+    }
+
+    {
+        // set view transform in cloth program
+        glGenBuffers(1, &view_display_options_buffer);
+
+        glBindBuffer(GL_UNIFORM_BUFFER, view_display_options_buffer);
+        glBufferData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat) + sizeof(GLuint), nullptr,
+                     GL_STATIC_DRAW);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, 4 * 4 * sizeof(GLfloat),
+                        glm::value_ptr(view_transform));
+
+        GLuint do_update = true;
+        glBufferSubData(GL_UNIFORM_BUFFER, 4 * 4 * sizeof(GLfloat), sizeof(GLuint), &do_update);
+    }
 }
 
 void Painter::init_light_transform_uniforms() {
@@ -186,34 +208,35 @@ void Painter::init_light_transform_uniforms() {
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
+
 void Painter::init_shadow_textures_and_framebuffer() {
-        glGenTextures(1, &shadow_texture);
-        glGenTextures(1, &shadow_color_texture);
-        glGenFramebuffers(1, &shadow_framebuffer);
+    glGenTextures(1, &shadow_texture);
+    glGenTextures(1, &shadow_color_texture);
+    glGenFramebuffers(1, &shadow_framebuffer);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, shadow_framebuffer);
 
-        glBindTexture(GL_TEXTURE_2D, shadow_texture);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, shadow_map_size, shadow_map_size);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glBindTexture(GL_TEXTURE_2D, shadow_texture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, shadow_map_size, shadow_map_size);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadow_texture, 0);
 
-        glBindTexture(GL_TEXTURE_2D, shadow_color_texture);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, shadow_map_size, shadow_map_size);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, shadow_color_texture, 0);
+    glBindTexture(GL_TEXTURE_2D, shadow_color_texture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, shadow_map_size, shadow_map_size);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, shadow_color_texture, 0);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Painter::init() {
@@ -255,7 +278,8 @@ void Painter::draw_shadows(float delta_time, unsigned int type) {
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_display_options_buffer);
 
     glBindVertexArray(cloth_VAO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[buffer_indices::first_positions + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1,
+                     buffers[buffer_indices::first_positions + current_buffer]);
     glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 }
 
@@ -276,9 +300,11 @@ void Painter::draw_to_screen(unsigned int type) {
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, view_display_options_buffer);
 
     glBindVertexArray(cloth_VAO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[buffer_indices::first_positions + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1,
+                     buffers[buffer_indices::first_positions + current_buffer]);
     current_buffer ^= 1;
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, buffers[buffer_indices::first_positions + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2,
+                     buffers[buffer_indices::first_positions + current_buffer]);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, buffers[buffer_indices::velocities]);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));

@@ -24,7 +24,8 @@ class Painter {
         GLuint shadow_color_texture = 0;
         GLuint shadow_framebuffer = 0;
 
-        enum buffer_indices {start_positions, first_positions, second_positions, velocities, num};
+        enum buffer_indices { start_positions, first_positions, second_positions, velocities, num };
+
         GLuint buffers[buffer_indices::num];
 
         GLuint light_display_options_buffer = 0;
@@ -44,12 +45,16 @@ class Painter {
 
         void init_opengl_window();
 
+        void init_ground_shader_program();
+        void init_cloth_shader_program();
         void init_shader_programs();
 
         void init_view_transform_uniforms();
         void init_light_transform_uniforms();
 
         void init_shadow_textures_and_framebuffer();
+
+        glm::mat4 construct_view_matrix();
 
     public:
 

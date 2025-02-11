@@ -17,7 +17,9 @@
 #include <sstream>
 #include <stdexcept>
 
-enum {display_type_color, display_type_shadow};
+enum {display_type_color, display_type_shadow, num_display_types};
+
+unsigned int current_display_type = 0;
 
 GLuint create_shader(GLint type, const char *source, const std::string &shader_name_str) {
     GLuint shader = glCreateShader(type);
@@ -138,6 +140,11 @@ class Painter {
         }
 
     public:
+
+        GLFWwindow * get_window () {
+            return window;
+        }
+
         void init() {
             glfwInit();
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -322,10 +329,19 @@ class Painter {
         }
 };
 
+void key_callback (GLFWwindow * window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_C && action == GLFW_PRESS) {
+        current_display_type++;
+        current_display_type %= num_display_types;
+    }
+}
+
 int main() {
 
     Painter pnt;
     pnt.init();
+
+    glfwSetKeyCallback (pnt.get_window(), key_callback);
 
     auto prev_time_point = std::chrono::high_resolution_clock::now();
     while (!pnt.has_finished()) {
@@ -333,7 +349,7 @@ int main() {
         float elapsed_seconds =
             std::chrono::duration<float>{cur_time_point - prev_time_point}.count();
         prev_time_point = cur_time_point;
-        pnt.display(elapsed_seconds, display_type_shadow);
+        pnt.display(elapsed_seconds, current_display_type);
 
         glfwPollEvents();
     }

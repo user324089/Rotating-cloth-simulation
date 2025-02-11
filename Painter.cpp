@@ -297,7 +297,7 @@ void Painter::draw_to_screen(unsigned int type) {
     glfwGetWindowSize(window, &width, &height);
     glViewport(0, 0, width, height);
 
-    glClearColor(1, 0, 1, 1);
+    glClearColor(0.3f, 0, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(program);

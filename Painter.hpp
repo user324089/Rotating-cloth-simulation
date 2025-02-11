@@ -23,7 +23,9 @@ class Painter {
         GLuint shadow_texture = 0;
         GLuint shadow_color_texture = 0;
         GLuint shadow_framebuffer = 0;
-        GLuint buffers[4];
+
+        enum buffer_indices {start_positions, first_positions, second_positions, velocities, num};
+        GLuint buffers[buffer_indices::num];
 
         GLuint light_display_options_buffer = 0;
         GLuint view_display_options_buffer = 0;

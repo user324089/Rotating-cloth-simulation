@@ -69,20 +69,20 @@ void Painter::init_buffers() {
         }
     }
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[0]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[buffer_indices::start_positions]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), vertex_positions,
                  GL_STATIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[1]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[buffer_indices::first_positions]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), vertex_positions,
                  GL_STATIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[2]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[buffer_indices::second_positions]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(vertex_positions), nullptr, GL_STATIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[3]);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffers[buffer_indices::velocities]);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(zeros), zeros, GL_STATIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     current_buffer = 0;
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers[0]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, buffers[buffer_indices::start_positions]);
 }
 
 void Painter::init_ground_VAO() {
@@ -255,7 +255,7 @@ void Painter::draw_shadows(float delta_time, unsigned int type) {
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, light_display_options_buffer);
 
     glBindVertexArray(cloth_VAO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[buffer_indices::first_positions + current_buffer]);
     glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 }
 
@@ -276,10 +276,10 @@ void Painter::draw_to_screen(unsigned int type) {
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, view_display_options_buffer);
 
     glBindVertexArray(cloth_VAO);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[1 + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, buffers[buffer_indices::first_positions + current_buffer]);
     current_buffer ^= 1;
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, buffers[1 + current_buffer]);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, buffers[3]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, buffers[buffer_indices::first_positions + current_buffer]);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, buffers[buffer_indices::velocities]);
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * row_length * (column_length - 1));
 

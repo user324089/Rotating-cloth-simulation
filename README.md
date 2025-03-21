@@ -1,4 +1,4 @@
-###Rotating cloth simulation
+### Rotating cloth simulation
 
 Program simulates cloth rotating around vertical axis. It has two modes: casting shadows and casting light. The modes can be switched using the 'C' key
 
